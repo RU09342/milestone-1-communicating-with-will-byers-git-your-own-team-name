@@ -1,0 +1,118 @@
+#include <msp430.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+unsigned int ByteCount=0;
+unsigned int nBytes=0;
+void main(void){
+    //Configure  RGB Settings
+    WDTCTL= WDTPW + WDTHOLD;
+    PM5CTL0 &= ~LOCKLPM5;
+    UCA3CTL1 |= UCSWRST;
+    P1DIR |= BIT4 + BIT5;
+    P3DIR |= BIT4;
+    P1SEL0 |= BIT5 + BIT4;
+    P3SEL0 |= BIT4;
+    P1SEL1 &= ~BIT5+ ~BIT4;
+    P3SEL1 &= ~BIT4;
+
+
+    TB0CTL=TASSEL_2 + MC_1;
+    TB0CCR0=255;
+    TB0CCTL1 |= OUTMOD_3;
+    TB0CCTL2 |= OUTMOD_3;
+    TB0CCTL3 |= OUTMOD_3;
+    TB0CCR1 = 200;
+    TB0CCR2 = 200;
+    TB0CCR3 = 200;
+
+    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
+    CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
+    CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
+    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
+    CSCTL0_H = 0;                           // Lock CS registers
+
+    // Configure USCI_A3 for UART mode
+    UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
+    UCA3CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+    // Baud Rate calculation
+    // 8000000/(16*9600) = 52.083
+    // Fractional portion = 0.083
+    // User's Guide Table 21-4: UCBRSx = 0x04
+    // UCBRFx = int ( (52.083-52)*16) = 1
+    UCA3BRW = 52;                           // 8000000/16/9600
+    UCA3MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+    UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+    UCA3IE |= UCRXIE;                       // Enable USCI_A3 RX interrupt
+
+
+
+
+   //UART
+ //   UCA3BR1=0;
+    P6SEL0 = BIT0 + BIT1;
+ //   UCA3CTL1 &= ~UCSWRST;
+ //   UCA3BR0= 3;
+ //   UCA3MCTLW = UCBRS1 + UCBRF_13 + UCOS16;
+  //  UCA3IE |= UCRXIE;
+ //   UCA3CTL1 |=UCSSEL_2;
+    __bis_SR_register(LPM0_bits + GIE);
+    _no_operation();
+}
+
+#pragma vector=USCI_A3_VECTOR
+__interrupt void USCI_A3_ISR(void)
+{
+    switch(__even_in_range(UCA3IV, 4))
+    {
+    case 0: break;
+
+    case 2:{
+        while(!(UCA3IFG & UCTXIFG));
+     if(ByteCount==0){
+     UCA3TXBUF=UCA3RXBUF-3;
+     nBytes=UCA3RXBUF;
+     ByteCount ++;
+     }
+    else if((ByteCount > 0 & ByteCount < 4)){
+        switch(ByteCount){
+    case 1:{
+           TB0CCR1=255-UCA3RXBUF;
+           break;
+    }
+    case 2:{
+
+                TB0CCR2=255-UCA3RXBUF;
+                break;
+    }
+    case 3:{
+
+                       TB0CCR3=255-UCA3RXBUF;
+                break;
+    }
+
+    default: break;
+    }
+     ByteCount++;
+    }
+            else if(ByteCount>3 & ByteCount <= nBytes - 1){
+                if(ByteCount !=(nBytes-1)){
+                    UCA3TXBUF=UCA3RXBUF;
+                    ByteCount++;
+            }
+            else{
+                UCA3TXBUF = 0x0D;
+                    ByteCount=0;
+                __delay_cycles(100000);
+            }
+}
+   break;
+}
+            case 4: break;
+            default: break;
+       }
+
+}
+
+

@@ -1,0 +1,7 @@
+
+**** Build of configuration Debug for project UARTECHO9600 ****
+
+"D:\\Embedded\\ccsv7\\utils\\bin\\gmake" -k -j 4 all -O 
+gmake[1]: 'UARTECHO9600.out' is up to date.
+
+**** Build Finished ****

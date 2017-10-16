@@ -5,11 +5,8 @@
 'Building file: ../main.c'
 'Invoking: MSP430 Compiler'
 "D:/Embedded/ccsv7/tools/compiler/ti-cgt-msp430_16.9.3.LTS/bin/cl430" -vmspx --data_model=restricted --use_hw_mpy=F5 --include_path="D:/Embedded/ccsv7/ccs_base/msp430/include" --include_path="D:/Embedded/Labs/milestone-1-communicating-with-will-byers-git-your-own-team-name/MSP430FR5994/Milestone" --include_path="D:/Embedded/ccsv7/tools/compiler/ti-cgt-msp430_16.9.3.LTS/include" --advice:power=all --advice:hw_config=all --define=__MSP430FR5994__ --define=_MPU_ENABLE -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 --preproc_with_compile --preproc_dependency="main.d"  "../main.c"
-"../main.c", line 15: remark #1530-D: (ULP 5.1) Detected divide operation(s). Recommend moving them to RAM during run time or not using as these are processing/power intensive
-"../main.c", line 80: remark #1528-D: (ULP 3.1) Detected flag polling using UCA0IFG. Recommend using an interrupt combined with enter LPMx and ISR
-"../main.c", line 12 (col. 7): remark #1531-D: (ULP 5.2) Detected floating point operation(s). Recommend moving them to RAM during run time or not using as these are processing/power intensive
-"../main.c", line 15 (col. 10): remark #1531-D: (ULP 5.2) Detected floating point operation(s). Recommend moving them to RAM during run time or not using as these are processing/power intensive
-"../main.c", line 16 (col. 11): remark #1531-D: (ULP 5.2) Detected floating point operation(s). Recommend moving them to RAM during run time or not using as these are processing/power intensive
+"../main.c", line 61: remark #1528-D: (ULP 3.1) Detected flag polling using UCA3IFG. Recommend using an interrupt combined with enter LPMx and ISR
+"../main.c", line 96: remark #1527-D: (ULP 2.1) Detected SW delay loop using __delay_cycles. Recommend using a timer module instead
 'Finished building: ../main.c'
 ' '
 'Building target: Milestone.out'
@@ -17,6 +14,7 @@
 "D:/Embedded/ccsv7/tools/compiler/ti-cgt-msp430_16.9.3.LTS/bin/cl430" -vmspx --data_model=restricted --use_hw_mpy=F5 --advice:power=all --advice:hw_config=all --define=__MSP430FR5994__ --define=_MPU_ENABLE -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 -z -m"Milestone.map" --heap_size=160 --stack_size=160 --cinit_hold_wdt=on -i"D:/Embedded/ccsv7/ccs_base/msp430/include" -i"D:/Embedded/ccsv7/ccs_base/msp430/lib/5xx_6xx_FRxx" -i"D:/Embedded/ccsv7/ccs_base/msp430/lib/FR59xx" -i"D:/Embedded/ccsv7/tools/compiler/ti-cgt-msp430_16.9.3.LTS/lib" -i"D:/Embedded/ccsv7/tools/compiler/ti-cgt-msp430_16.9.3.LTS/include" --priority --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="Milestone_linkInfo.xml" --use_hw_mpy=F5 --rom_model -o "Milestone.out" "./main.obj" "../lnk_msp430fr5994.cmd"  -llibmpu_init.a -llibmath.a -llibc.a 
 <Linking>
 warning #10421-D: For FRAM devices running at higher than 8MHz, FRAM waitstate needs to be configured accordingly.
+remark #10372-D: (ULP 4.1) Detected uninitialized Port 1 in this project. Recommend initializing all unused ports to eliminate wasted current consumption on unused pins.
 remark #10372-D: (ULP 4.1) Detected uninitialized Port 2 in this project. Recommend initializing all unused ports to eliminate wasted current consumption on unused pins.
 remark #10372-D: (ULP 4.1) Detected uninitialized Port 3 in this project. Recommend initializing all unused ports to eliminate wasted current consumption on unused pins.
 remark #10372-D: (ULP 4.1) Detected uninitialized Port 4 in this project. Recommend initializing all unused ports to eliminate wasted current consumption on unused pins.

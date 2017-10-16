@@ -1,111 +1,107 @@
-#include <msp430.h> 
+#include <msp430.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
 
-unsigned int ByteCount = 0;
-unsigned int nBytes = 0;
-
-#define RED BIT
-#define GREEN BIT
-#define BLUE BIT
-#define BUTTON
-
-
-float dutycycle(int hex)
-{
-    float duty;
-    duty = (hex/0xFF)*255;
-    return(int)duty;
-}
-
-int main(void) {
-    WDTCTL = WDTPW | WDTHOLD; // Stop watchdog timer
-
-    P1DIR |= BIT0;
-    P1SEL0 |= BIT0;
-    P1OUT |= BIT0;
-
-    TB0CTL |=   TASSEL_2 |ID_2 | MC_1;
-
-    TB0CCR0 = 255; // Count in CCR0 register
-    TB0CCR1 = 255;
-    TB0CCR2 = 255;
-    TB0CCR3 = 255;
-
-    TB0CCTL1 |= OUTMOD_3; // Enable CCR2 interrupt
-    TB0CCTL2 |= OUTMOD_3; // Enable CCR2 interrupt
-    TB0CCTL3 |= OUTMOD_3; // Enable CCR2 interrupt
+unsigned int ByteCount=0; //create unsigned integers ByteCount and nBytes, both initialized at zero
+unsigned int nBytes=0;
+void main(void){
+    //Configure  RGB Settings
+    WDTCTL= WDTPW + WDTHOLD; //stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5; //disable high impedance mode
+    UCA3CTL1 |= UCSWRST; // put state machine in resett
+    P1DIR |= BIT4 + BIT5; // sets pins 1.4 and 1.5 as outputs
+    P3DIR |= BIT4; // sets pin 3.4 as output
+    P1SEL0 |= BIT5 + BIT4; //pwm outputs to pins 1.4 and 1.5
+    P1SEL1 &= ~BIT5+ ~BIT4;
+    P3SEL0 |= BIT4; //pwm outputs to pin 3.4
+    P3SEL1 &= ~BIT4;
 
 
+    TB0CTL=TASSEL_2 + MC_1; //SMCLK, up mode
+    TB0CCR0=255;            // Set CCR0 value to 255
+    TB0CCTL1 |= OUTMOD_3;   // set/reset mode
+    TB0CCTL2 |= OUTMOD_3;   // set/reset mode
+    TB0CCTL3 |= OUTMOD_3;   // set/reset mode
+    TB0CCR1 = 200;          // sets CCR1 to 200
+    TB0CCR2 = 200;          // sets CCR2 to 200
+    TB0CCR3 = 200;          // sets CCR3 to 200
 
-
-
-
-    // Configure GPIO
-    P2SEL0 &= ~(BIT0 | BIT1);
-    P2SEL1 |= BIT0 | BIT1; // USCI_A0 UART operation
-
-    // Disable the GPIO power-on default high-impedance mode to activate
-    // previously configured port settings
-    PM5CTL0 &= ~LOCKLPM5;
-
-    // Startup clock system with max DCO setting ~8MHz
-    CSCTL0_H = CSKEY >> 8; // Unlock clock registers
-    CSCTL1 = DCOFSEL_3 | DCORSEL; // Set DCO to 8MHz
+    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
+    CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
     CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
-    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1; // Set all dividers
-    CSCTL0_H = 0; // Lock CS registers
+    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
+    CSCTL0_H = 0;                           // Lock CS registers
 
-    // Configure USCI_A0 for UART mode
-    UCA0CTLW0 = UCSWRST;
-    UCA0CTLW0 |= UCSSEL__SMCLK; // CLK = SMCLK
+    // Configure USCI_A3 for UART mode
+    P6SEL0 = BIT0 + BIT1;                   // UART TX and RX
+    UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
+    UCA3CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
     // Baud Rate calculation
     // 8000000/(16*9600) = 52.083
     // Fractional portion = 0.083
+    // User's Guide Table 21-4: UCBRSx = 0x04
     // UCBRFx = int ( (52.083-52)*16) = 1
-    UCA0BR0 = 52; // 8000000/16/9600
-    UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
-    UCA0CTLW0 &= ~UCSWRST; // Initialize eUSCI
-    UCA0IE |= UCRXIE; // Enable USCI_A0 RX interrupt
-
-    __bis_SR_register(LPM3_bits | GIE); // Enter LPM3, interrupts enabled
-    __no_operation(); // For debugger
+    UCA3BRW = 52;                           // 9600 baud rate
+    UCA3MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+    UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+    UCA3IE |= UCRXIE;                       // Enable USCI_A3 RX interrupt
+    __bis_SR_register(LPM0_bits + GIE);     // low power mode, general interrupt enable
+    _no_operation();                        // for debugger
 }
 
-#pragma vector=EUSCI_A0_VECTOR
-__interrupt void USCI_A0_ISR(void)
+#pragma vector=USCI_A3_VECTOR               // UART interrupt vector
+__interrupt void USCI_A3_ISR(void)
 {
-    switch(__even_in_range(UCA0IV, USCI_UART_UCTXCPTIFG))
+    switch(__even_in_range(UCA3IV, 4))     //UCA3IV controls the switch statement, UCA3IV must be an even number from 0 to 4
     {
-        case USCI_NONE: break;
-        case USCI_UART_UCRXIFG:
-            while(!(UCA0IFG & UCTXIFG));
-            if(ByteCount == 0){
-                UCA0TXBUF = UCA0RXBUF; //echo (add a minus 3)?
-                nBytes = UCA0RXBUF;
-                ByteCount ++;
-            }
-            else if(ByteCount == 1){
-                ByteCount ++;
-                TB0CCR1 = 255 - UCA0RXBUF;
-            }
-            else if(ByteCount == 2){
-                ByteCount ++;
-                TB0CCR2 = 255 - UCA0RXBUF;
-            }
-            else if(ByteCount == 3){
-                ByteCount ++;
-                TB0CCR3 = 255 - UCA0RXBUF;
-            }
-            else if(ByteCount > 3){
-                UCA0TXBUF = UCA0RXBUF;
-                ByteCount ++;
-                if(ByteCount == nBytes)
-                    ByteCount = 0;
-            }
-            __no_operation();
-            break;
-        case USCI_UART_UCTXIFG: break;
-        case USCI_UART_UCSTTIFG: break;
-        case USCI_UART_UCTXCPTIFG: break;
+    case 0: break;                        //no interrupt
+
+    case 2:{
+        while(!(UCA3IFG & UCTXIFG));      // USCI_A3 TX buffer ready?
+     if(ByteCount==0){                    // when the "zero" byte is received...
+     UCA3TXBUF=UCA3RXBUF-3;               // take the value and subtract 3, transmit it out
+     nBytes=UCA3RXBUF;                    // nBytes is equal to the "zero" byte
+     ByteCount ++;                        // increment ByteCount
+     }
+    else if((ByteCount > 0 & ByteCount < 4)){  //when bytes 1-3 are received...
+        switch(ByteCount){
+    case 1:{
+           TB0CCR1=255-UCA3RXBUF;             // subtract the value of the first byte from 255 and set the value to CCR1 (red)
+           break;
+    }
+    case 2:{
+
+                TB0CCR2=255-UCA3RXBUF;      // subtract the value of the second byte from 255 and set the value to CCR2 (green)
+                break;
+    }
+    case 3:{
+
+                       TB0CCR3=255-UCA3RXBUF; // subtract the value of the third byte from 255 and set the value to CCR3 (blue)
+                break;
     }
 
+    default: break;
+    }
+     ByteCount++; // increment ByteCount
+    }
+            else if(ByteCount>3 & ByteCount <= nBytes - 1){  // if ByteCount is between 4 and the last byte...
+                if(ByteCount !=(nBytes-1)){ //if ByteCount is not equal to the last byte...
+                    UCA3TXBUF=UCA3RXBUF;   // transmit the values of those bytes
+                    ByteCount++;          // increment ByteCount
+            }
+            else{
+                UCA3TXBUF = 0x0D;       // if it is the last byte, transmit 0x0D
+                    ByteCount=0;        // reset ByteCount
+                __delay_cycles(100000); //delay
+            }
 }
+   break;
+}
+            case 4: break;
+            default: break;
+       }
+
+}
+
+
